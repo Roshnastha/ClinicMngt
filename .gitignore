@@ -1,0 +1,21 @@
+# Environment
+.env
+.env.local
+.env.*.local
+# keep .env.example tracked
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Misc
+.DS_Store
+*.log

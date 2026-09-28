@@ -1,0 +1,69 @@
+# ---------------------------------------------------------------------------
+# PhysioDesk – full stack in one command:
+#
+#     docker compose up --build
+#
+#   db        → PostgreSQL 16           (localhost:5434)
+#   backend   → FastAPI + uvicorn       (http://localhost:8000, docs /api/v1/docs)
+#   frontend  → Next.js 15              (http://localhost:3000)
+#
+# The backend waits for Postgres readiness, applies Alembic migrations and
+# seeds demo data (idempotent) on every boot, then serves the API.
+# ---------------------------------------------------------------------------
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: physiodesk-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: physiodesk
+    ports:
+      - "5434:5432"
+    volumes:
+      - physiodesk_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d physiodesk"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: physiodesk-api
+    environment:
+      # Inside the compose network Postgres is reachable as host "db":5432.
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/physiodesk
+      SECRET_KEY: change-me-in-production
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Wait for Postgres → migrate → seed (idempotent) → serve.
+    # $$ escapes $ for Compose so the shell inside the container expands them.
+    # Migrations run in a subshell so the CWD stays /repo for uvicorn even if
+    # alembic fails (otherwise uvicorn would start from backend/ and crash
+    # with ModuleNotFoundError: No module named 'backend').
+    command: >
+      sh -c "i=0; until python -c 'import os,psycopg2; psycopg2.connect(os.environ[\"DATABASE_URL\"]).close()'; do i=$$((i+1)); [ $$i -ge 60 ] && echo 'database not ready' && exit 1; sleep 1; done; (cd backend && alembic upgrade head) && python -m backend.app.db.seed; exec uvicorn backend.app.main:app --host 0.0.0.0 --port 8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: physiodesk-web
+    environment:
+      # Baked into the client bundle at build time (NEXT_PUBLIC_*).
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    # Host port 3001 (3000 is occupied by another local dev server).
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+
+volumes:
+  physiodesk_pgdata:

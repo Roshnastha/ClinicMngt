@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* PhysioDesk base layer — global defaults on top of the design system */
+/* ------------------------------------------------------------------ */
+@layer base {
+  html {
+    @apply bg-bg-app text-text-primary font-body antialiased;
+  }
+
+  body {
+    @apply bg-bg-app text-text-primary;
+  }
+
+  /* Every heading renders in Fraunces (display face) by default. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer components {
+  /* Shared primary action button (Header CTA, form submits, etc.). */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  /* Secondary / quiet button on warm background. */
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 rounded-lg border border-border-custom bg-surface px-4 py-2 text-sm font-medium text-primary-text-soft transition-colors hover:bg-primary-soft/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  /* Standard form input treatment. */
+  .input-field {
+    @apply w-full rounded-lg border border-border-custom bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Print sheet — only the .print-area renders on paper (invoice view)  */
+/* ------------------------------------------------------------------ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+  }
+
+  /* Keep badge/pill colors on paper. */
+  .print-area * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
